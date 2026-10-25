@@ -1,4 +1,14 @@
-import { Button, Card, ColorSwatch, type BoardProps, type PlayerProfile, type Seating, type UserRole } from 'game-kit/turns'
+import {
+  Button,
+  Card,
+  ColorSwatch,
+  type BoardProps,
+  type PlayerAppearance,
+  type PlayerIndex,
+  type PlayerProfile,
+  type Seating,
+  type UserRole,
+} from 'game-kit/turns'
 import { BUST_FACE } from './rules'
 import { SEAT_COLORS } from './seatColors'
 import type { LastRoll, PigMove, PigState } from './types'
@@ -9,16 +19,32 @@ interface Viewer {
   role: UserRole
   seating: Seating
   players: PlayerProfile[]
+  lookOf: (seat: PlayerIndex) => PlayerIndex
 }
 
-/** Hot-seat players share one screen, so only an online viewer is "You". */
+/** A solo playtester plays every seat, so only an online viewer is "You". */
 function isViewer(seat: number, { role, seating }: Viewer): boolean {
   return seating === 'remote' && role === seat
 }
 
+/**
+ * The colour a seat is drawn in. In a solo playtest GameKit disguises the seats: the one
+ * being played always looks like seat 0 and the others are shuffled, so the tester plays
+ * the same colour every turn. Draw every seat colour through this, never SEAT_COLORS[seat].
+ */
+function appearanceOf(seat: number, { lookOf }: Viewer): PlayerAppearance {
+  return SEAT_COLORS[lookOf(seat)]
+}
+
 function nameOf(seat: number, viewer: Viewer): string {
   if (isViewer(seat, viewer)) return 'You'
-  return viewer.players[seat]?.name ?? `Player ${seat + 1}`
+  return viewer.players[seat]?.name ?? appearanceOf(seat, viewer).name
+}
+
+/** Seats in turn order from the viewer's own; seat order would give a solo playtester's real seat away. */
+function seatsFromViewer(seatCount: number, { role }: Viewer): number[] {
+  const start = role === 'spectator' ? 0 : role
+  return Array.from({ length: seatCount }, (_, offset) => (start + offset) % seatCount)
 }
 
 function describeRoll(lastRoll: LastRoll | null, viewer: Viewer): string {
@@ -32,15 +58,15 @@ function Scoreboard({ state, viewer }: { state: PigState; viewer: Viewer }) {
   return (
     <Card>
       <ul className="flex flex-col divide-y divide-slot">
-        {state.scores.map((score, seat) => {
+        {seatsFromViewer(state.scores.length, viewer).map(seat => {
           const isActive = state.winner === null && seat === state.playerIndex
           return (
             <li key={seat} className={`flex items-center gap-3 py-2 ${isActive ? 'font-bold' : ''}`}>
               <span className="w-3">{isActive ? '▶' : ''}</span>
-              <ColorSwatch color={SEAT_COLORS[seat].color} />
+              <ColorSwatch color={appearanceOf(seat, viewer).color} />
               <span className="flex-1">{nameOf(seat, viewer)}</span>
               {isActive && state.turnTotal > 0 && <span className="text-sm text-ink-soft">+{state.turnTotal} at stake</span>}
-              <span className="w-10 text-right text-2xl tabular-nums">{score}</span>
+              <span className="w-10 text-right text-2xl tabular-nums">{state.scores[seat]}</span>
             </li>
           )
         })}
@@ -67,8 +93,8 @@ function TurnControls({ state, onMove }: { state: PigState; onMove: (move: PigMo
   )
 }
 
-export function PigBoard({ state, role, players, onMove, seating }: BoardProps<PigState, PigMove>) {
-  const viewer: Viewer = { role, seating, players }
+export function PigBoard({ state, role, players, onMove, seating, lookOf }: BoardProps<PigState, PigMove>) {
+  const viewer: Viewer = { role, seating, players, lookOf }
   const isOver = state.winner !== null
   const isViewersTurn = !isOver && role === state.playerIndex
 
@@ -95,7 +121,7 @@ export function PigBoard({ state, role, players, onMove, seating }: BoardProps<P
       {isViewersTurn && <TurnControls state={state} onMove={onMove} />}
       {!isOver && !isViewersTurn && (
         <p className="text-center text-ink-soft">
-          {seating === 'hot_seat' ? `${nameOf(state.playerIndex, viewer)} to play` : `Waiting for ${nameOf(state.playerIndex, viewer)}…`}
+          {seating === 'solo_playtest' ? `${nameOf(state.playerIndex, viewer)} to play` : `Waiting for ${nameOf(state.playerIndex, viewer)}…`}
         </p>
       )}
       {role === 'spectator' && seating === 'remote' && <p className="text-center text-sm text-ink-faint">You’re watching.</p>}

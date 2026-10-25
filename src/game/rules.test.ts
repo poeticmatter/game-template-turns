@@ -49,6 +49,19 @@ describe('Pig', () => {
     expect(pigRules.activePlayer(state)).toBeNull()
   })
 
+  it('warns that a roll can’t be undone', () => {
+    expect(pigRules.irreversibleReason?.(newGame(), roll)).toEqual(expect.any(String))
+  })
+
+  it('lets a hold be undone', () => {
+    expect(pigRules.irreversibleReason?.(newGame({ turnTotal: 7 }), hold)).toBeNull()
+  })
+
+  it('names the winner and the final scores', () => {
+    const state = pigRules.applyMove(newGame({ scores: [15, 4, 0], turnTotal: 6 }), hold)
+    expect(pigRules.outcome?.(state)).toEqual({ winners: [0], scores: [21, 4, 0] })
+  })
+
   it('replays the same moves to the same game', () => {
     const moves: PigMove[] = [roll, roll, roll, hold, roll, roll]
     const play = () => moves.reduce((state, move) => (pigRules.activePlayer(state) === null ? state : safeApply(state, move)), newGame())

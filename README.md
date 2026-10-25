@@ -6,7 +6,8 @@ You get, from [GameKit](https://github.com/poeticmatter/GameKit) (`game-kit/turn
 
 - **Async play** backed by Supabase: take your turn whenever you like; players join with a link and a name, and can take their seat back on another device
 - **Live play** over PeerJS (peer to peer, no server), with spectators and reconnection
-- **Hot seat**: everyone shares one device
+- **Solo playtest**: play every seat yourself, across several tables at once, always as the same colour
+- **Undo and End turn** in every mode, with a warning before moves that can't be undone
 - A lobby with a player count, share links, a "Your turn" tab title, and GitHub Pages deployment
 
 The example game in `src/game/` is Pig, a push-your-luck dice game. Replace it with your own.
@@ -53,7 +54,9 @@ A game provides a `GameModule` (types from `game-kit/turns`):
 - `rules.createInitialState({ settings, playerCount, seed })`, `rules.activePlayer(state)` and `rules.applyMove(state, move)`. These must be **pure and deterministic**: in async play the moving player's client computes the next state and everyone else trusts it. Keep randomness in the state, seeded from `seed`, and draw with GameKit's `nextIndex` (Pig's dice do this).
 - `activePlayer` names the seat (0-based) whose move the game awaits, or `null` once it's over. A turn can take several moves; only the active player's are applied.
 - `applyMove` throws `IllegalMoveError` for a move that breaks the rules. Boards should only offer legal moves; the error guards against stale or tampered ones.
-- `Board` receives `state`, `role` (a seat number or `'spectator'`), `players` (names, in seat order), `onMove` and `seating`. In hot seat, `seating` is `'hot_seat'` and `role` is always the active player, so name players rather than saying "You".
+- Optional `rules.irreversibleReason(state, move)`: a message for a move that can't be undone because it draws on the game's randomness (Pig's rolls), or null. GameKit warns before such a move and sends the turn so far at once.
+- Optional `rules.outcome(state)`: the winners and scores of a finished game, for the solo playtest's summary.
+- `Board` receives `state`, `role` (a seat number or `'spectator'`), `players` (names, in seat order), `onMove`, `seating` and `lookOf`. In a solo playtest, `seating` is `'solo_playtest'` and `role` is the seat the tester was dealt, so name players rather than saying "You". The dealt seat is disguised as seat 0 and the others are shuffled, so draw every seat colour with `lookOf(seat)` and don't list players in seat order (Pig's board does both).
 - `minPlayers`, `maxPlayers`, `playerAppearance(seat)` (a name and colour for the lobby and join screens), `defaultSettings` and `SettingsForm` (which also gets the chosen player count).
 
 GameKit's screens take their colours from the tokens in `src/index.css`.

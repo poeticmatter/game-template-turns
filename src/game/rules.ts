@@ -46,4 +46,9 @@ export const pigRules: GameRules<PigSettings, PigState, PigMove> = {
     if (state.winner !== null) throw new IllegalMoveError('The game is over')
     return move.kind === 'roll' ? roll(state) : hold(state)
   },
+
+  // A player who could undo a roll after seeing it would hold instead whenever it came up 1.
+  irreversibleReason: (_state, move) => (move.kind === 'roll' ? 'You can’t take back a roll once the die is cast.' : null),
+
+  outcome: state => ({ winners: state.winner === null ? [] : [state.winner], scores: state.scores }),
 }
