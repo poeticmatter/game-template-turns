@@ -17,7 +17,7 @@ npm run init-game -- <repo-name> <game-id> "<Title>"   # one-time rename of a fr
 
 A browser game for 2–5 players taking turns in order, with no backend of its own. It is part of the game lab (poeticmatter/game-lab); each game lives in its own repo created from poeticmatter/game-template-turns. (Two-player games where both choose at the same time start from poeticmatter/game-template instead.)
 
-The multiplayer platform (lobby, seats, transports, status screens) is **GameKit**'s `game-kit/turns`, a package pinned in `package.json` to a release tag of poeticmatter/GameKit (local copy: `C:\Code\GameKit`).
+The multiplayer platform (lobby, seats, transports, status screens) is **GameKit**'s `game-kit/turns`, a package pinned in `package.json` to a release tag of poeticmatter/GameKit (local copy: `C:\Code\digital-board-games\GameKit`).
 
 - `src/game/`: the game. Pure rules (`rules.ts`, tested in `rules.test.ts`), React UI (`Board.tsx`, `SettingsForm.tsx`), seat colours, and `index.ts` exporting `game: GameModule`. The example is Pig.
 - `src/game.config.ts`: `GAME_CONFIG`: the game id, title, tagline, and Supabase settings read from `.env.local`.
